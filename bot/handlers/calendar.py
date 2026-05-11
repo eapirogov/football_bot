@@ -33,9 +33,9 @@ def _format_fixture(f: Fixture, home: Team, away: Team, league: League, tz: str)
     date_str = fmt_user_tz(f.kickoff_utc, tz)
     flag = _flag(league.country)
     if f.status == FixtureStatus.FINISHED and f.home_score is not None:
-        score = f"{f.home_score}:{f.away_score}"
-        return f"{flag} {date_str}  <b>{home.name}</b> {score} <b>{away.name}</b>"
-    return f"{flag} {date_str}  <b>{home.name}</b> — <b>{away.name}</b>"
+        score = f"<b>{f.home_score} : {f.away_score}</b>"
+        return f"{flag}  {date_str}\n<b>{home.name}</b>  {score}  <b>{away.name}</b>"
+    return f"{flag}  {date_str}\n<b>{home.name}</b>  —  <b>{away.name}</b>"
 
 
 async def _get_subscribed_fixture_ids(session, user_id: int) -> tuple[set[int], set[int]]:
@@ -99,7 +99,7 @@ async def _render_upcoming(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     if not lines:
         text = "📅 Нет предстоящих матчей по твоим подпискам.\n\nПодпишись на лиги или команды в меню."
     else:
-        text = "📅 <b>Ближайшие матчи</b>\n\n" + "\n".join(lines)
+        text = "📅 <b>Ближайшие матчи</b>\n\n" + "\n┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n".join(lines)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📋 Последние результаты", callback_data="calendar:results")],
@@ -118,7 +118,7 @@ async def _render_results(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     if not lines:
         text = "📋 Нет завершённых матчей по твоим подпискам."
     else:
-        text = "📋 <b>Последние результаты</b>\n\n" + "\n".join(lines)
+        text = "📋 <b>Последние результаты</b>\n\n" + "\n┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n".join(lines)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📅 Ближайшие матчи", callback_data="calendar:upcoming")],
