@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from bot.db.base import async_session_maker
-from bot.db.models import UserSettings
+from bot.db.models import User, UserSettings
 
 router = Router()
 
@@ -28,14 +28,19 @@ TIMEZONES: list[tuple[str, str]] = [
 _TZ_LABEL = {tz: label for tz, label in TIMEZONES}
 
 
-async def _get_or_create(user_id: int) -> UserSettings:
+async def _get_or_create(user_id: int, username: str | None = None) -> UserSettings:
     async with async_session_maker() as session:
+        # убедимся что пользователь существует
+        stmt_user = pg_insert(User).values(id=user_id, username=username).on_conflict_do_nothing()
+        await session.execute(stmt_user)
         s = await session.get(UserSettings, user_id)
         if not s:
             stmt = pg_insert(UserSettings).values(user_id=user_id).on_conflict_do_nothing()
             await session.execute(stmt)
             await session.commit()
             s = await session.get(UserSettings, user_id)
+        else:
+            await session.commit()
         return s
 
 
@@ -74,13 +79,13 @@ def _tz_menu_kb(current_tz: str) -> InlineKeyboardMarkup:
 
 @router.message(Command("settings"))
 async def cmd_settings(message: Message) -> None:
-    s = await _get_or_create(message.from_user.id)
+    s = await _get_or_create(message.from_user.id, message.from_user.username)
     await message.answer(_settings_text(s), reply_markup=_settings_kb(s), parse_mode="HTML")
 
 
 @router.callback_query(F.data == "settings")
 async def cb_settings(query: CallbackQuery) -> None:
-    s = await _get_or_create(query.from_user.id)
+    s = await _get_or_create(query.from_user.id, query.from_user.username)
     await query.message.edit_text(_settings_text(s), reply_markup=_settings_kb(s), parse_mode="HTML")
     await query.answer()
 
