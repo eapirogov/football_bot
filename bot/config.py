@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import sys
+print("ENV KEYS:", [k for k in os.environ if k in ("TELEGRAM_TOKEN", "FOOTBALL_DATA_KEY", "DATABASE_URL", "TEST")], file=sys.stderr)
+
 # коды лиг football-data.org
 LEAGUE_CODES = ["PL", "PD", "SA", "BL1", "FL1", "CL", "WC", "EC", "ELC", "DED", "PPL", "BSA"]
 
@@ -30,9 +33,9 @@ LEAGUE_ID_MAP: dict[str, int] = {
 
 @dataclass
 class Settings:
-    TELEGRAM_TOKEN: str = field(default_factory=lambda: os.environ["TELEGRAM_TOKEN"])
-    FOOTBALL_DATA_KEY: str = field(default_factory=lambda: os.environ["FOOTBALL_DATA_KEY"])
-    DATABASE_URL: str = field(default_factory=lambda: os.environ["DATABASE_URL"])
+    TELEGRAM_TOKEN: str = field(default_factory=lambda: os.environ.get("TELEGRAM_TOKEN", ""))
+    FOOTBALL_DATA_KEY: str = field(default_factory=lambda: os.environ.get("FOOTBALL_DATA_KEY", ""))
+    DATABASE_URL: str = field(default_factory=lambda: os.environ.get("DATABASE_URL", ""))
     TIMEZONE: str = field(default_factory=lambda: os.environ.get("TIMEZONE", "Europe/Moscow"))
     LOG_LEVEL: str = field(default_factory=lambda: os.environ.get("LOG_LEVEL", "INFO"))
 
