@@ -99,7 +99,7 @@ async def _render_upcoming(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     if not lines:
         text = "📅 Нет предстоящих матчей по твоим подпискам.\n\nПодпишись на лиги или команды в меню."
     else:
-        text = "📅 <b>Ближайшие матчи</b>\n\n" + "\n┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n".join(lines)
+        text = "📅 <b>Ближайшие матчи</b>\n\n" + "\n\n".join(lines)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📋 Последние результаты", callback_data="calendar:results")],
@@ -118,7 +118,7 @@ async def _render_results(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     if not lines:
         text = "📋 Нет завершённых матчей по твоим подпискам."
     else:
-        text = "📋 <b>Последние результаты</b>\n\n" + "\n┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n".join(lines)
+        text = "📋 <b>Последние результаты</b>\n\n" + "\n\n".join(lines)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📅 Ближайшие матчи", callback_data="calendar:upcoming")],
