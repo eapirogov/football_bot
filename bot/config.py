@@ -1,7 +1,7 @@
 import os
+from dataclasses import dataclass, field
 
 from dotenv import load_dotenv
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 load_dotenv()
 
@@ -28,14 +28,13 @@ LEAGUE_ID_MAP: dict[str, int] = {
 }
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
-
-    TELEGRAM_TOKEN: str
-    FOOTBALL_DATA_KEY: str
-    DATABASE_URL: str
-    TIMEZONE: str = "Europe/Moscow"
-    LOG_LEVEL: str = "INFO"
+@dataclass
+class Settings:
+    TELEGRAM_TOKEN: str = field(default_factory=lambda: os.environ["TELEGRAM_TOKEN"])
+    FOOTBALL_DATA_KEY: str = field(default_factory=lambda: os.environ["FOOTBALL_DATA_KEY"])
+    DATABASE_URL: str = field(default_factory=lambda: os.environ["DATABASE_URL"])
+    TIMEZONE: str = field(default_factory=lambda: os.environ.get("TIMEZONE", "Europe/Moscow"))
+    LOG_LEVEL: str = field(default_factory=lambda: os.environ.get("LOG_LEVEL", "INFO"))
 
     PRE_MATCH_MINUTES: int = 20
     POST_MATCH_MINUTES: int = 110
