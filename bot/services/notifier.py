@@ -75,11 +75,15 @@ async def send_pre(notification_id: int) -> None:
 
     from bot.utils.time import fmt_user_tz
     tz = user_settings.timezone if user_settings else "Europe/Moscow"
+    local = fmt_user_tz(fixture.kickoff_utc, tz)
+    league_name = league.name if league else ""
     text = (
-        "⚽ <b>Скоро матч!</b>\n"
-        f"🏆 {league.name if league else ''}\n\n"
-        f"<b>{home.name}</b> — <b>{away.name}</b>\n"
-        f"🕐 {fmt_user_tz(fixture.kickoff_utc, tz)}"
+        "⚽  <b>СКОРО МАТЧ</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"🏆  {league_name}\n\n"
+        f"🔵  <b>{home.name}</b>\n"
+        f"⚪  <b>{away.name}</b>\n\n"
+        f"🕐  Начало в <b>{local}</b>"
     )
     try:
         await _bot().send_message(notif.user_id, text, parse_mode="HTML")
@@ -106,10 +110,13 @@ async def send_kickoff(notification_id: int) -> None:
         log.info("send_kickoff skipped: notifications disabled for user=%s", notif.user_id)
         return
 
+    league_name = league.name if league else ""
     text = (
-        "🟢 <b>Матч начался!</b>\n"
-        f"🏆 {league.name if league else ''}\n\n"
-        f"<b>{home.name}</b> — <b>{away.name}</b>"
+        "🟢  <b>МАТЧ НАЧАЛСЯ</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"🏆  {league_name}\n\n"
+        f"🔵  <b>{home.name}</b>\n"
+        f"⚪  <b>{away.name}</b>"
     )
     try:
         await _bot().send_message(notif.user_id, text, parse_mode="HTML")
@@ -143,10 +150,14 @@ async def send_post(notification_id: int) -> None:
 
     score_home = fixture.home_score if fixture.home_score is not None else "?"
     score_away = fixture.away_score if fixture.away_score is not None else "?"
+    league_name = league.name if league else ""
     text = (
-        "🔚 <b>Матч завершён</b>\n"
-        f"🏆 {league.name if league else ''}\n\n"
-        f"<b>{home.name}</b> {score_home} — {score_away} <b>{away.name}</b>"
+        "🔴  <b>МАТЧ ЗАВЕРШЁН</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"🏆  {league_name}\n\n"
+        f"🔵  <b>{home.name}</b>\n"
+        f"⚪  <b>{away.name}</b>\n\n"
+        f"⚽  Счёт: <b>{score_home} — {score_away}</b>"
     )
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="📊 Итоги", callback_data=f"stats:{fixture.id}")]]
