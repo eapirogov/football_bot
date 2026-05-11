@@ -1,4 +1,9 @@
+import os
+
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+load_dotenv()
 
 # коды лиг football-data.org
 LEAGUE_CODES = ["PL", "PD", "SA", "BL1", "FL1", "CL", "WC", "EC", "ELC", "DED", "PPL", "BSA"]
@@ -24,7 +29,7 @@ LEAGUE_ID_MAP: dict[str, int] = {
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     TELEGRAM_TOKEN: str
     FOOTBALL_DATA_KEY: str
