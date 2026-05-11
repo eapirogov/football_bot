@@ -30,6 +30,10 @@ async def main() -> None:
     bot = Bot(token=settings.TELEGRAM_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
+    from bot.middleware import UpsertUserMiddleware
+    dp.message.middleware(UpsertUserMiddleware())
+    dp.callback_query.middleware(UpsertUserMiddleware())
+
     dp.include_router(start.router)
     dp.include_router(leagues.router)
     dp.include_router(teams.router)
