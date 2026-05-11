@@ -45,21 +45,20 @@ async def _get_standings(league_id: int, code: str) -> list[dict]:
 
 def _format_table(rows: list[dict], full: bool = False) -> str:
     limit = len(rows) if full else min(10, len(rows))
-    lines = ["<pre>"]
-    lines.append(" #  Команда                И   В  Н  П   О")
-    lines.append("─" * 46)
+    lines = []
     for row in rows[:limit]:
         pos = row.get("position", "")
         team = (row.get("team") or {}).get("shortName") or (row.get("team") or {}).get("name") or "?"
-        team = team[:20].ljust(20)
         played = row.get("playedGames", 0)
         won = row.get("won", 0)
         draw = row.get("draw", 0)
         lost = row.get("lost", 0)
         pts = row.get("points", 0)
-        lines.append(f"{str(pos).rjust(2)}  {team}  {str(played).rjust(2)}  {str(won).rjust(2)} {str(draw).rjust(2)} {str(lost).rjust(2)}  {str(pts).rjust(3)}")
-    lines.append("</pre>")
-    return "\n".join(lines)
+        lines.append(
+            f"{str(pos).rjust(2)}. <b>{team}</b>\n"
+            f"    {played} и  •  {won}в {draw}н {lost}п  •  <b>{pts} очк</b>"
+        )
+    return "\n\n".join(lines)
 
 
 async def _league_select_kb() -> InlineKeyboardMarkup:
