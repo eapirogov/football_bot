@@ -4,9 +4,10 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from sqlalchemy import delete, select
 
 from bot.db.base import async_session_maker
-from bot.db.models import FavoriteTeam, League, Team
+from bot.db.models import Fixture, FavoriteTeam, League, Team
 from bot.keyboards.leagues import leagues_page_kb
 from bot.keyboards.teams import teams_page_kb
+from bot.services.notifier import cancel_notifications_for_fixtures
 from bot.states.fsm import TeamSearch
 
 router = Router()
@@ -69,11 +70,19 @@ async def cb_toggle_team(query: CallbackQuery) -> None:
             await session.execute(
                 delete(FavoriteTeam).where(FavoriteTeam.user_id == user_id, FavoriteTeam.team_id == team_id)
             )
+            fixture_ids = list((await session.execute(
+                select(Fixture.id).where(
+                    Fixture.status.in_(["SCHEDULED", "LIVE"]),
+                    (Fixture.home_team_id == team_id) | (Fixture.away_team_id == team_id),
+                )
+            )).scalars().all())
+            await session.commit()
+            await cancel_notifications_for_fixtures(user_id, fixture_ids)
             note = "Отписался от команды"
         else:
             session.add(FavoriteTeam(user_id=user_id, team_id=team_id))
+            await session.commit()
             note = "Подписался на команду"
-        await session.commit()
 
         teams = (
             await session.execute(select(Team).where(Team.league_id == league_id).order_by(Team.name))
@@ -133,8 +142,16 @@ async def cb_toggle_team_from_search(query: CallbackQuery) -> None:
             await session.execute(
                 delete(FavoriteTeam).where(FavoriteTeam.user_id == user_id, FavoriteTeam.team_id == team_id)
             )
+            fixture_ids = list((await session.execute(
+                select(Fixture.id).where(
+                    Fixture.status.in_(["SCHEDULED", "LIVE"]),
+                    (Fixture.home_team_id == team_id) | (Fixture.away_team_id == team_id),
+                )
+            )).scalars().all())
+            await session.commit()
+            await cancel_notifications_for_fixtures(user_id, fixture_ids)
             await query.answer("Отписался")
         else:
             session.add(FavoriteTeam(user_id=user_id, team_id=team_id))
+            await session.commit()
             await query.answer("Подписался")
-        await session.commit()

@@ -3,8 +3,9 @@ from aiogram.types import CallbackQuery
 from sqlalchemy import delete, select
 
 from bot.db.base import async_session_maker
-from bot.db.models import FavoriteLeague, League
+from bot.db.models import Fixture, FavoriteLeague, League
 from bot.keyboards.leagues import leagues_page_kb
+from bot.services.notifier import cancel_notifications_for_fixtures
 
 router = Router()
 
@@ -42,11 +43,19 @@ async def cb_toggle_league(query: CallbackQuery) -> None:
             await session.execute(
                 delete(FavoriteLeague).where(FavoriteLeague.user_id == user_id, FavoriteLeague.league_id == league_id)
             )
+            fixture_ids = list((await session.execute(
+                select(Fixture.id).where(
+                    Fixture.league_id == league_id,
+                    Fixture.status.in_(["SCHEDULED", "LIVE"]),
+                )
+            )).scalars().all())
+            await session.commit()
+            await cancel_notifications_for_fixtures(user_id, fixture_ids)
             note = "Отписался от лиги"
         else:
             session.add(FavoriteLeague(user_id=user_id, league_id=league_id))
+            await session.commit()
             note = "Подписался на лигу"
-        await session.commit()
 
     leagues, subs = await fetch_leagues_and_subs(user_id)
     await query.message.edit_reply_markup(reply_markup=leagues_page_kb(leagues, page, subs, action="leagues"))

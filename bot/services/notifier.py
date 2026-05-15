@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from aiogram import Bot
 from aiogram.exceptions import TelegramForbiddenError, TelegramNetworkError, TelegramRetryAfter
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from bot.db.base import async_session_maker
 from bot.db.models import Fixture, FixtureStatus, League, Notification, Team, UserSettings
@@ -44,6 +44,21 @@ async def _mark_sent(notification_id: int) -> None:
         if notif:
             notif.sent_at = datetime.now(timezone.utc)
             await session.commit()
+
+
+async def cancel_notifications_for_fixtures(user_id: int, fixture_ids: list[int]) -> None:
+    """Удаляет неотправленные уведомления пользователя для указанных матчей."""
+    if not fixture_ids:
+        return
+    async with async_session_maker() as session:
+        await session.execute(
+            delete(Notification).where(
+                Notification.user_id == user_id,
+                Notification.fixture_id.in_(fixture_ids),
+                Notification.sent_at.is_(None),
+            )
+        )
+        await session.commit()
 
 
 def _reschedule(notification_id: int, target, delay_seconds: int) -> None:
@@ -140,12 +155,82 @@ async def send_post(notification_id: int) -> None:
     if not notif or notif.sent_at or not fixture:
         return
 
-    # если матч ещё не завершён по данным БД — пропускаем (sync_fixtures обновит позже)
     if user_settings and not user_settings.notifications_enabled:
         log.info("send_post skipped: notifications disabled for user=%s", notif.user_id)
         return
+
     if fixture.status != FixtureStatus.FINISHED:
-        log.info("Fixture %s not finished yet (%s) — skip post", fixture.id, fixture.status)
+        # Матч ещё не завершён по данным БД.
+        # Фоновая синхронизация (sync_fixtures) запускается раз в 6 часов, поэтому
+        # пассивное ожидание обновления статуса в 2-часовом окне практически не работает.
+        # Решение: запрашиваем football-data.org напрямую, обновляем статус и счёт в БД,
+        # затем сразу отправляем уведомление, если матч уже завершён.
+        from bot.services.football_api import football_api  # local import — avoid circular
+
+        _STATUS_MAP_LOCAL = {
+            "FINISHED": FixtureStatus.FINISHED,
+            "IN_PLAY": FixtureStatus.LIVE,
+            "PAUSED": FixtureStatus.LIVE,
+            "POSTPONED": FixtureStatus.POSTPONED,
+            "CANCELLED": FixtureStatus.POSTPONED,
+            "SUSPENDED": FixtureStatus.POSTPONED,
+        }
+
+        try:
+            match_data = await football_api.get_match(fixture.id)
+        except Exception as exc:
+            log.warning(
+                "send_post: live API fetch failed for fixture=%s: %s — will retry via scheduler",
+                fixture.id, exc,
+            )
+            match_data = None
+
+        if match_data:
+            raw_status = match_data.get("status", "")
+            new_status = _STATUS_MAP_LOCAL.get(raw_status, FixtureStatus.SCHEDULED)
+            score = (match_data.get("score") or {}).get("fullTime") or {}
+            new_home = score.get("home")
+            new_away = score.get("away")
+
+            async with async_session_maker() as session:
+                f = await session.get(Fixture, fixture.id)
+                if f:
+                    f.status = new_status
+                    if new_home is not None:
+                        f.home_score = new_home
+                    if new_away is not None:
+                        f.away_score = new_away
+                    await session.commit()
+            log.info(
+                "send_post: fixture=%s refreshed from API — status=%s score=%s:%s",
+                fixture.id, new_status, new_home, new_away,
+            )
+
+            if new_status == FixtureStatus.FINISHED:
+                # Матч завершён — вызываем себя повторно с актуальными данными из БД
+                await send_post(notification_id)
+                return
+
+        # Статус всё ещё не FINISHED — ждём или сдаёмся
+        now = datetime.now(timezone.utc)
+        scheduled = notif.scheduled_at
+        if scheduled.tzinfo is None:
+            scheduled = scheduled.replace(tzinfo=timezone.utc)
+        elapsed = (now - scheduled).total_seconds()
+
+        if elapsed < 7200:  # 2 часа — максимальное время ожидания
+            log.info(
+                "Fixture %s not finished yet (%s), elapsed %.0fs — retry in 15 min",
+                fixture.id, fixture.status, elapsed,
+            )
+            _reschedule(notification_id, send_post, 900)  # 15 минут
+        else:
+            # Прошло больше 2 часов — матч, вероятно, отложен или отменён
+            log.info(
+                "Fixture %s still not FINISHED after 2h retries (%s) — giving up",
+                fixture.id, fixture.status,
+            )
+            await _mark_sent(notification_id)
         return
 
     score_home = fixture.home_score if fixture.home_score is not None else "?"
