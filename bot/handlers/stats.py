@@ -99,7 +99,7 @@ async def cb_stats(query: CallbackQuery) -> None:
         f"📊 <b>Итоги матча</b>\n"
         f"🏆 {league_name}\n\n"
         f"{score_line}\n\n"
-        f"<b>Форма (последние 5):</b>\n"
+        f"<b>Форма (последние 5):</b>  <i>W победа · D ничья · L поражение</i>\n"
         f"  {home.name}: {home_form}\n"
         f"  {away.name}: {away_form}\n\n"
         f"<b>В таблице:</b>\n"
