@@ -68,7 +68,7 @@ async def main() -> None:
     scheduler.start()
 
     from datetime import datetime, timedelta, timezone as _tz
-    catchup_from = (datetime.now(_tz.utc) - timedelta(days=2)).date().isoformat()
+    catchup_from = (datetime.now(_tz.utc) - timedelta(days=30)).date().isoformat()
     asyncio.create_task(sync_fixtures(scheduler, date_from_override=catchup_from))
     await reschedule_pending(scheduler)
 
