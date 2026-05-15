@@ -1,6 +1,6 @@
 from aiogram import Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from bot.db.base import async_session_maker
@@ -66,6 +66,27 @@ async def cb_menu(query: CallbackQuery) -> None:
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
     await message.answer(HELP, reply_markup=main_menu_kb(), parse_mode="HTML")
+
+
+@router.message(Command("test_results"))
+async def cmd_test_results(message: Message) -> None:
+    fixtures = [
+        ("🏴󠁧󠁢󠁥󠁮󠁧󠁿", "12.05 22:00", "Арсенал", "<b>2 : 1</b>", "Манчестер Сити"),
+        ("🇪🇸", "11.05 21:00", "Барселона", "<b>3 : 0</b>", "Реал Мадрид"),
+        ("🏴󠁧󠁢󠁥󠁮󠁧󠁿", "10.05 18:00", "Ливерпуль", "<b>1 : 1</b>", "Челси"),
+        ("🇩🇪", "10.05 19:30", "Бавария", "<b>4 : 2</b>", "Боруссия Д"),
+        ("🇮🇹", "09.05 21:45", "Интер", "<b>0 : 0</b>", "Ювентус"),
+    ]
+    lines = [
+        f"{flag}  {date}\n<b>{home}</b>  {score}  <b>{away}</b>"
+        for flag, date, home, score, away in fixtures
+    ]
+    text = "📋 <b>Последние результаты</b>\n\n" + "\n\n".join(lines)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📅 Ближайшие матчи", callback_data="calendar:upcoming")],
+        [InlineKeyboardButton(text="🏠 В меню", callback_data="menu")],
+    ])
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
 @router.callback_query(lambda c: c.data == "help")
