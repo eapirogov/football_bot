@@ -96,52 +96,6 @@ football_bot/
     └── utils/time.py            # форматирование времени в МСК
 ```
 
-## Установка и запуск
-
-### 1. Подготовка окружения
-
-```bash
-cd football_bot
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. PostgreSQL
-
-```bash
-brew install postgresql@16 && brew services start postgresql@16
-createdb football_bot
-```
-
-### 3. Ключи и настройки
-
-1. Получить токен у [@BotFather](https://t.me/BotFather).
-2. Зарегистрироваться на [api-football.com](https://www.api-football.com/) и взять API-ключ (бесплатный план — 100 запросов/день).
-3. Скопировать `.env.example` в `.env` и заполнить:
-
-```env
-TELEGRAM_TOKEN=...
-API_FOOTBALL_KEY=...
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/football_bot
-TIMEZONE=Europe/Moscow
-```
-
-### 4. Миграции и сид
-
-```bash
-alembic upgrade head
-python -m seeds.leagues_teams
-```
-
-### 5. Запуск
-
-```bash
-python -m bot
-```
-
-В Telegram отправить боту `/start` — появится главное меню.
-
 ## Логика уведомлений
 
 1. При старте и каждые 6 часов `sync_fixtures` тянет матчи на ближайшие 7 дней по поддерживаемым лигам и кладёт их в `fixtures`.
