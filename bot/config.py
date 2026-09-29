@@ -5,9 +5,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import sys
-print("ENV KEYS:", [k for k in os.environ if k in ("TELEGRAM_TOKEN", "FOOTBALL_DATA_KEY", "DATABASE_URL", "TEST")], file=sys.stderr)
-
 # коды лиг football-data.org
 LEAGUE_CODES = ["PL", "PD", "SA", "BL1", "FL1", "CL", "WC", "EC", "ELC", "DED", "PPL", "BSA"]
 

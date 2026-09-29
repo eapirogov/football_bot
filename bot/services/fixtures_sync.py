@@ -15,6 +15,7 @@ from bot.db.models import (
     Notification,
     NotificationKind,
     Team,
+    UserSettings,
 )
 from bot.services.football_api import current_season, football_api
 
@@ -141,10 +142,17 @@ async def sync_fixtures(scheduler: AsyncIOScheduler | None = None, date_from_ove
                 if not subs:
                     continue
 
-                pre_at = fixture.kickoff_utc - timedelta(minutes=settings.PRE_MATCH_MINUTES)
                 post_at = fixture.kickoff_utc + timedelta(minutes=settings.POST_MATCH_MINUTES)
 
                 for user_id in subs:
+                    # интервал напоминания у каждого свой (см. /settings), поэтому
+                    # pre_at считается по его настройке, а не по общей константе
+                    us = await session.get(UserSettings, user_id)
+                    if us is not None and not us.notifications_enabled:
+                        continue
+                    pre_minutes = us.pre_match_minutes if us else settings.PRE_MATCH_MINUTES
+                    pre_at = fixture.kickoff_utc - timedelta(minutes=pre_minutes)
+
                     if pre_at > now:
                         await _plan_notification(session, sched, user_id, fixture.id, NotificationKind.PRE, pre_at, send_pre)
                     if fixture.kickoff_utc > now:
